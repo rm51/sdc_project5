@@ -125,8 +125,9 @@ color_space = 'LUV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orient = 9 # HOG pixels per cell
 pix_per_cell = 8 # HOG pixels per cell
 cell_per_block = 2 # HOG cells per block
-hog_channel = 1 # Can be 0, 1, 2 or "ALL"
-spatial_size = (16, 16) # Spatial binning dimensions
+hog_channel = "ALL" # Can be 0, 1, 2 or "ALL"
+spatial_size = (32, 32)
+#spatial_size = (16, 16) # Spatial binning dimensions
 hist_bins = 16 # Number of histogram bins
 spatial_feat = True # Spatial features on or off
 hist_feat = True # Histogram features on or off
@@ -258,7 +259,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 				xbox_left = np.int(xleft*scale)
 				ytop_draw = np.int(ytop*scale)
 				win_draw = np.int(window*scale)
-				cv2.rectangle(draw_img, (xbox_left, ytop_draw+ystart), (xbox_left+win_draw, ytop_draw+win_draw, ytop_draw+win_draw_ystart),(0,0,255),6)
+				cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
 
 	return draw_img
 
@@ -269,7 +270,7 @@ scale = 1.5
 out_img = find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 
 plt.imshow(out_img)
-plt.imshow()
+plt.show()
 
 
 
