@@ -14,6 +14,9 @@ from lessons import *
 from sklearn.cross_validation import train_test_split
 
 img = mpimg.imread('test_images/test1.jpg')
+video = cv2.VideoCapture('test_video.mp4')
+fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
+out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
 
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
@@ -261,21 +264,20 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     return draw_img
 
 
-ystart = 400
+ystart = 350
 ystop = 656
 scale = 1.5
 
-out_img = find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 
-plt.imshow(out_img)
-plt.show()
-
-
-
-
+def process_video(clip1):
+	while (clip1.isOpened()):
+		ret, frame = clip1.read()
+		out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+		out.write(out_img)
 
 
 
+process_video(video)
 
 
 
