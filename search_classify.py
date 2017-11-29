@@ -8,13 +8,14 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
 from lessons import *
+from scipy.ndimage.measurements import label
 # NOTE: the next import is only valid for scikit-learn version <=0.17
 # for scikit-learn >= 0.18 use:
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
 
 img = mpimg.imread('test_images/test1.jpg')
-video = cv2.VideoCapture('test_video.mp4')
+video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
 out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
 
@@ -230,6 +231,9 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     hog2 = get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
     hog3 = get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
     
+
+    bbox_list = []
+
     for xb in range(nxsteps):
         for yb in range(nysteps):
             ypos = yb*cells_per_step
@@ -259,21 +263,70 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
-                cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
-                
-    return draw_img
 
+                bbox_list.append(((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)))
+
+                #cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
+    
+    return bbox_list            
+    #return draw_img
+
+def add_heat(heatmap, bbox_list):
+	# Iterate through list of boxes
+	for box in bbox_list:
+		# Add += 1 for all pixels inside each box
+		# Assuming each "box" takes the form ((x1, y1), (x2, y2))
+		heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+	# Return updated heatmap
+	return heatmap # Iterate through list of bboxes
+
+def apply_threshold(heatmap, threshold):
+	# Zero out pixels below the threshold
+	heatmap[heatmap <= threshold] = 0
+	# Return thresholded map
+	return heatmap
 
 ystart = 350
 ystop = 656
 scale = 1.5
 
+def draw_labeled_bboxes(img, labels):
+	# Iterate through all detected cars
+	for car_number in range(1, labels[1]+1):
+		# Find pixels with each car_number label value
+		nonzero = (labels[0] == car_number).nonzero()
+		# Identify x and y values of those pixels
+		nonzeroy = np.array(nonzero[0])
+		nonzerox = np.array(nonzero[1])
+		# Define a bounding box based on min/max x and y
+		bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+		# Draw the box on the image
+		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+	# Return the image
+	return img
+
 
 def process_video(clip1):
 	while (clip1.isOpened()):
 		ret, frame = clip1.read()
-		out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
-		out.write(out_img)
+		#out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+		heat = np.zeros_like(frame[:,:,0]).astype(np.float)
+		bbox_list = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+		
+		# Add heat to each box in box list
+		heat = add_heat(heat, bbox_list)
+
+		# Add threshold to help remove false positives
+		heat = apply_threshold(heat, 1)
+
+		# Visualize the heatmap when displaying
+		heatmap = np.clip(heat, 0, 255)
+
+		# Find final boxes from heatmap using label function
+		labels = label(heatmap)
+		draw_img = draw_labeled_bboxes(np.copy(frame), labels)
+		out.write(draw_img)
 
 
 
