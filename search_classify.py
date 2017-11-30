@@ -14,7 +14,7 @@ from scipy.ndimage.measurements import label
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
 
-img = mpimg.imread('test_images/test1.jpg')
+img = cv2.imread('test_images/test1.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
 out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
@@ -22,9 +22,9 @@ out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
 # just for a single image rather than a list of images
-def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
+def single_img_features(img, color_space='YcrCb', spatial_size=(32, 32),
 						hist_bins=32, orient=9,
-						pix_per_cell=8, cell_per_block=2, hog_channel=0,
+						pix_per_cell=8, cell_per_block=2, hog_channel='ALL',
 						spatial_feat=True, hist_feat=True, hog_feat=True):
 	#1) Define an empty list to receive features
 	img_features = []
@@ -121,7 +121,7 @@ for image in notcars_images:
 #notcars = notcars[0:sample_size]
 
 ### TODO Tweak these parameters and see how the results change
-color_space = 'LUV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orient = 9 # HOG pixels per cell
 pix_per_cell = 8 # HOG pixels per cell
 cell_per_block = 2 # HOG cells per block
@@ -287,8 +287,9 @@ def apply_threshold(heatmap, threshold):
 	# Return thresholded map
 	return heatmap
 
-ystart = 350
+ystart = 300
 ystop = 656
+xstart = 200
 scale = 1.5
 
 def draw_labeled_bboxes(img, labels):
@@ -328,11 +329,42 @@ def process_video(clip1):
 		draw_img = draw_labeled_bboxes(np.copy(frame), labels)
 		out.write(draw_img)
 
+def process_image(img):
+	
+	frame = img
+		#out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+	heat = np.zeros_like(frame[:,:,0]).astype(np.float)
+	bbox_list = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+		
+	# Add heat to each box in box list
+	heat = add_heat(heat, bbox_list)
+
+	# Add threshold to help remove false positives
+	heat = apply_threshold(heat, 1)
+
+	# Visualize the heatmap when displaying
+	heatmap = np.clip(heat, 0, 255)
+
+	# Find final boxes from heatmap using label function
+	labels = label(heatmap)
+	draw_img = draw_labeled_bboxes(np.copy(frame), labels)
+	out.write(draw_img)
 
 
+# to test out images
+#process_image(img)
+
+# to test out video
 process_video(video)
 
 
+# ****  Decide what features to use - some combination of color and gradient
+
+# Chose and train a classifier, LinearSVM probalby best but oculd try others as well
+
+# Sliding window technique in test image
+
+# multi scale search or tile search
 
 
 
