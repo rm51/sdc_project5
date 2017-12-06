@@ -18,14 +18,31 @@ img = cv2.imread('test_images/test1.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
 out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
+previous = []
+
+### TODO Tweak these parameters and see how the results change
+color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+orient = 9
+#orient = 9 # HOG pixels per cell
+pix_per_cell = 8 # HOG pixels per cell
+cell_per_block = 4 # HOG cells per block
+# cell_per_block = 2 # HOG cells per block
+hog_channel = "ALL" # Can be 0, 1, 2 or "ALL"
+spatial_size = (32, 32)
+#spatial_size = (16, 16) # Spatial binning dimensions
+hist_bins = 16 # Number of histogram bins
+spatial_feat = True # Spatial features on or off
+hist_feat = True # Histogram features on or off
+hog_feat = True # HOG features on or off
+y_start_stop = [None, None] # Min and max in y to search in slide_window()
 
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
 # just for a single image rather than a list of images
-def single_img_features(img, color_space='YcrCb', spatial_size=(32, 32),
-						hist_bins=32, orient=9,
-						pix_per_cell=8, cell_per_block=2, hog_channel='ALL',
-						spatial_feat=True, hist_feat=True, hog_feat=True):
+def single_img_features(img, color_space=color_space, spatial_size=spatial_size,
+						hist_bins=hist_bins, orient=orient,
+						pix_per_cell=pix_per_cell, cell_per_block=cell_per_block, hog_channel='ALL',
+						spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat):
 	#1) Define an empty list to receive features
 	img_features = []
 	#2) Apply color conversion if other than 'RGB'
@@ -70,11 +87,11 @@ def single_img_features(img, color_space='YcrCb', spatial_size=(32, 32),
 
 # Define a function you will pass an image
 # and the list of windows to be searched (output of slide_windows())
-def search_windows(img, windows, clf, scaler, color_space='RGB',
-					spatial_size=(32, 32), hist_bins=32,
-					pix_per_cell=8, cell_per_block=2,
-					hog_channel=0, spatial_feat=True,
-					hist_feat=True, hog_feat=True):
+def search_windows(img, windows, clf, scaler, color_space=color_space,
+					spatial_size=spatial_size, hist_bins=hist_bins,
+					pix_per_cell=pix_per_cell, cell_per_block=cell_per_block,
+					hog_channel=hog_channel, spatial_feat=spatial_feat,
+					hist_feat=hist_feat, hog_feat=hog_feat):
 
 	#1) Create an empty list  to receive positive detection windows
 	on_windows = []
@@ -101,15 +118,20 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 
 # Read in cars and notcars
 cars_path='vehicles/*/*.png'
+car_testing_data_path = 'vehicle_images_separated/*.png'
 cars_images = glob.glob(cars_path)
+car_testing_data = glob.glob(car_testing_data_path)
 notcars_path='non-vehicles/*/*.png'
 cars_images = glob.glob(cars_path)
 notcars_images = glob.glob(notcars_path)
 cars = []
 notcars = []
+cars_testing_data = []
 
 for image in cars_images:
 	cars.append(image)
+for image in car_testing_data:
+	cars_testing_data.append(image)
 for image in notcars_images:
 	notcars.append(image)
 
@@ -120,21 +142,14 @@ for image in notcars_images:
 #cars = cars[0:sample_size]
 #notcars = notcars[0:sample_size]
 
-### TODO Tweak these parameters and see how the results change
-color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-orient = 9 # HOG pixels per cell
-pix_per_cell = 8 # HOG pixels per cell
-cell_per_block = 2 # HOG cells per block
-hog_channel = "ALL" # Can be 0, 1, 2 or "ALL"
-#spatial_size = (32, 32)
-spatial_size = (16, 16) # Spatial binning dimensions
-hist_bins = 16 # Number of histogram bins
-spatial_feat = True # Spatial features on or off
-hist_feat = True # Histogram features on or off
-hog_feat = True # HOG features on or off
-y_start_stop = [None, None] # Min and max in y to search in slide_window()
+
 
 car_features = extract_features(cars, color_space=color_space,
+							spatial_size=spatial_size, hist_bins=hist_bins,
+							orient=orient, pix_per_cell=pix_per_cell,
+							cell_per_block=cell_per_block,
+							hog_channel=hog_channel, hog_feat=hog_feat)
+car_testing_features =  extract_features(cars_testing_data, color_space=color_space,
 							spatial_size=spatial_size, hist_bins=hist_bins,
 							orient=orient, pix_per_cell=pix_per_cell,
 							cell_per_block=cell_per_block,
@@ -147,18 +162,29 @@ notcar_features = extract_features(notcars, color_space=color_space,
 						hist_feat=hist_feat, hog_feat=hog_feat)
 
 X = np.vstack((car_features, notcar_features)).astype(np.float64)
+X_test = np.vstack((car_testing_features, notcar_features)).astype(np.float64)
 # Fit a per-column scaler
 X_scaler = StandardScaler().fit(X)
+X_scaler_test = StandardScaler().fit(X_test)
 # Apply the Scaler to X
 scaled_X = X_scaler.transform(X)
+scaled_X_test = X_scaler_test.transform(X_test)
 
 # Define the labels vector
 y  = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+y_test = np.hstack((np.ones(len(car_testing_features)), np.zeros(len(notcar_features))))
 
 # Split up data into randomized training and test sets
+'''
 rand_state = np.random.randint(0, 100)
 X_train, X_test, y_train, y_test = train_test_split(
-	scaled_X, y, test_size=0.2, random_state=rand_state)
+	scaled_X, y, test_size=0.3, random_state=rand_state)
+'''
+rand_state = np.random.randint(0, 100)
+
+X_train, y_train = scaled_X, y
+
+X_test, y_test = scaled_X_test, y_test
 
 print('Using:', orient,'orientations', pix_per_cell,
 	'pixels per cell and', cell_per_block, 'cells per block')
@@ -205,6 +231,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     img = img.astype(np.float32)/255
     
     img_tosearch = img[ystart:ystop,:,:]
+    # print (img_tosearch.shape) (356, 1280, 3)
     ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
     if scale != 1:
         imshape = ctrans_tosearch.shape
@@ -289,11 +316,13 @@ def apply_threshold(heatmap, threshold):
 
 ystart = 300
 ystop = 656
-xstart = 200
-scale = 1.5
+xstart = 250
+scale = 2
 
 def draw_labeled_bboxes(img, labels):
 	# Iterate through all detected cars
+	
+
 	for car_number in range(1, labels[1]+1):
 		# Find pixels with each car_number label value
 		nonzero = (labels[0] == car_number).nonzero()
@@ -304,6 +333,10 @@ def draw_labeled_bboxes(img, labels):
 		bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
 		# Draw the box on the image
 		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+		global previous
+		previous.append((bbox[0], bbox[1]))
+		#print ("bbox[0]", bbox[0], "bbox[1]", bbox[1])
+
 	# Return the image
 	return img
 
@@ -319,14 +352,20 @@ def process_video(clip1):
 		heat = add_heat(heat, bbox_list)
 
 		# Add threshold to help remove false positives
-		heat = apply_threshold(heat, 1)
+		heat = apply_threshold(heat, 2)
 
 		# Visualize the heatmap when displaying
 		heatmap = np.clip(heat, 0, 255)
+		# plt.imshow(heatmap)
+		# plt.imshow()
 
 		# Find final boxes from heatmap using label function
 		labels = label(heatmap)
-		draw_img = draw_labeled_bboxes(np.copy(frame), labels)
+		global previous
+		if len(labels) == 0:
+			draw_img = cv2.rectangle(img, previous[0], previous[1], (0,0,225), 6)
+		else:
+			draw_img = draw_labeled_bboxes(np.copy(frame), labels)
 		out.write(draw_img)
 
 def process_image(img):
@@ -365,6 +404,26 @@ process_video(video)
 # Sliding window technique in test image
 
 # multi scale search or tile search
+
+# Use a deque
+
+# look into limiting x values
+
+# Try to split up into every 10th image for training
+
+# estimate the path and once we've foudn a vehicle keep going there
+
+# expected result Test Accuracy of SVC =  0.4908 when I broke up the time series data
+
+# find centroid of boxes and then draw the box where it will appear in teh next frame
+
+# can estimate what the size should be based on how clsoe it is
+
+
+# have a vector to draw on previou  bboxes, then just have to detec new ones and then change scale based on something
+
+# if it didnt' detect it then draw on
+
 
 
 
