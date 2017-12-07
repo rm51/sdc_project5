@@ -241,8 +241,14 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     ch2 = ctrans_tosearch[:,:,1]
     ch3 = ctrans_tosearch[:,:,2]
 
+    # start with a starting x value to eliminate ones on the other side of the highway
+    # starting x = 300
+
+    # subtracting 300 from the shape to start searching at 300
     # Define blocks and steps as above
-    nxblocks = (ch1.shape[1] // pix_per_cell) - cell_per_block + 1
+    # Subtracting 300 doesn't eliminate the left side and also doesn't find the cars
+    # maybe need to divide 300 per pixels to get the value?
+    nxblocks = ((ch1.shape[1]) // pix_per_cell) - cell_per_block + 1
     nyblocks = (ch1.shape[0] // pix_per_cell) - cell_per_block + 1 
     nfeat_per_block = orient*cell_per_block**2
     
@@ -274,6 +280,9 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             xleft = xpos*pix_per_cell
             ytop = ypos*pix_per_cell
 
+            # print ("xleft ", xleft)
+            # print ("ytop ", ytop)
+
             # Extract the image patch
             subimg = cv2.resize(ctrans_tosearch[ytop:ytop+window, xleft:xleft+window], (64,64))
           
@@ -286,7 +295,8 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))    
             test_prediction = svc.predict(test_features)
             
-            if test_prediction == 1:
+            # Filtering out boxes where xleft is less than 200 because that is on the wrong side of the road
+            if test_prediction == 1 and xleft > 200:
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
