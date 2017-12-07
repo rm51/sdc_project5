@@ -15,8 +15,8 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: .image0109.png
-[image2]: .image3711.png
+[image1]: image0109.png
+[image2]: image3711.png
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
@@ -47,14 +47,13 @@ At first I didn't separate out the vehicle images into testing and training and 
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the `YCrCb` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(4, 4)`:
 
 
 ![alt text][image2]
 
 ####2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
 
 In the quizzes I was using a HOG parameter of 1. But when running my code on the video, I ran into errors and I looked at the forum and saw other people had the same issue and they 
 solved it by changing to HOG=ALL. So I also decided to use HOG=ALL. For the color spaces I tried HSV, LUV, HLS, YUV and YCrCb. I found the best results with YCrCb so I decided to use that will all three color channels as some cars are different colors so the color could be used to identify potential cars as well. I also noticed that some students didn't use HOG at all. So I intend to try things out using something else as well. When I increased the orient from 9 to 18 I got better results and it seemed to find the car more. But I think once I have found the car, I could just just move those boxes since the cars aren't changing lanes so once we have a good reading, we know they will appear in the next frame as well. 
@@ -67,7 +66,7 @@ I trained a linear SVM using...
 
 ####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+I decided to search only at the bottom of the image as cars wouldn't be found in the sky. Originally I used a sliding window search but then later 
 
 ![alt text][image3]
 
@@ -117,4 +116,6 @@ I believe pipeline might fail if there are many cars such as during rush hour or
 # Should the find_cars X_scaler be the X_scaler_test or X_scaler which is the training data? If I use X_scaler_test it performs very badly. 
 
 I wanted to save the previous frame and once I got a reliable detection draw that bbox on if it didn't find anything. But that part doesn't seem to be working. I also plan to use a deque to record the past ten bboxes so I can average them out and make them smoother. 
+
+I also limited the x values so that if startx were less than 300 it wouldn't add them to the bboxes list. But that would only work for similar vidoes. If there were no left side of the road in the video then it would incorrectly filter out valid cars.
 
