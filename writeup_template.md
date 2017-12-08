@@ -17,7 +17,7 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 [image1]: image0109.png
 [image2]: image3711.png
-[image3]: ./examples/sliding_windows.jpg
+[image3]: test_image_output.png
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
@@ -60,13 +60,13 @@ solved it by changing to HOG=ALL. So I also decided to use HOG=ALL. For the colo
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+I trained a linear SVC. At first I moved some of the training data to the testing set. But then I moved the data so that the data set wasn't in the testing set and the accuracy went down to about 50%. Previously it was at around 99%. But I still got decent results in my video although the boxes are wobbly because I haven't yet done an average of the past ten boxes. I used all three HOG channels and also the YCrCb color space. I decided upon these after trying out different color spaces and finding that YCrCb gave the best results. I originally was using HOG channel 1 and was getting good results with that but I ran into an error and I saw on the forums that it could be fixed by using HOG channel ALL. This was in single_img_features of search_classify.py in lines 42-86. 
 
 ###Sliding Window Search
 
 ####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search only at the bottom of the image as cars wouldn't be found in the sky. Originally I used a sliding window search but then later 
+I decided to search only at the bottom of the image as cars wouldn't be found in the sky. In find_cars lines 267 - 278 I implement a sliding window search. I chose 64 so that it would 8x8 and chose cells_per_step to be 2 because when I increased cells_per_step it didn't find the car in several frames. 
 
 ![alt text][image3]
 
@@ -74,7 +74,7 @@ I decided to search only at the bottom of the image as cars wouldn't be found in
 
 Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
 
-![alt text][image4]
+![alt text][image3]
 ---
 
 ### Video Implementation
