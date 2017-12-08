@@ -47,10 +47,10 @@ At first I didn't separate out the vehicle images into testing and training and 
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(4, 4)`:
+#Here is an example using the `YCrCb` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(4, 4)`:
 
 
-![alt text][image2]
+#![alt text][image2]
 
 ####2. Explain how you settled on your final choice of HOG parameters.
 
@@ -80,26 +80,18 @@ Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spat
 ### Video Implementation
 
 ####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [https://youtu.be/pnwAI2AlkXo]
+Here's a [https://youtu.be/J_ic79yOv9M]
 
 
 ####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
 I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
+I filtered out xleft < 400 as that would not be within the lane lines on the right side of the road. But that is not the best way to do it as it wouldn't work in other situations such as where there's no left side. Given the cars don't change lanes I also tried to see if a car was not detected in one frame to use the previous location to draw the bbox.
 
-### Here are six frames and their corresponding heatmaps:
+I don't have an example results showing the heatmap because I changed my code so that it would take the centroid of the bboxes so my heatmap is just a square with no differentiations in color.
 
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+I also don't have the resulting bounding boxes from the last frame in the series as it didn't identify the cars accurately there.
 
 ---
 
@@ -118,4 +110,5 @@ I believe pipeline might fail if there are many cars such as during rush hour or
 I wanted to save the previous frame and once I got a reliable detection draw that bbox on if it didn't find anything. But that part doesn't seem to be working. I also plan to use a deque to record the past ten bboxes so I can average them out and make them smoother. 
 
 I also limited the x values so that if startx were less than 300 it wouldn't add them to the bboxes list. But that would only work for similar vidoes. If there were no left side of the road in the video then it would incorrectly filter out valid cars.
+
 

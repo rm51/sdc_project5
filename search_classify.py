@@ -241,10 +241,6 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     ch2 = ctrans_tosearch[:,:,1]
     ch3 = ctrans_tosearch[:,:,2]
 
-    # start with a starting x value to eliminate ones on the other side of the highway
-    # starting x = 300
-
-    # subtracting 300 from the shape to start searching at 300
     # Define blocks and steps as above
     # Subtracting 300 doesn't eliminate the left side and also doesn't find the cars
     # maybe need to divide 300 per pixels to get the value?
@@ -296,12 +292,18 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             test_prediction = svc.predict(test_features)
             
             # Filtering out boxes where xleft is less than 200 because that is on the wrong side of the road
-            if test_prediction == 1 and xleft > 200:
+            # originally was 200
+            if test_prediction == 1 and xleft > 400:
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
 
                 bbox_list.append(((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)))
+                
+                # display image for writeup
+                # display_img = cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
+                # plt.imshow(display_img)
+                # plt.show()
 
                 #cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
     
@@ -314,6 +316,10 @@ def add_heat(heatmap, bbox_list):
 		# Add += 1 for all pixels inside each box
 		# Assuming each "box" takes the form ((x1, y1), (x2, y2))
 		heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+		# display image for writeup
+		# plt.imshow(heatmap)
+		# plt.show()
 
 	# Return updated heatmap
 	return heatmap # Iterate through list of bboxes
