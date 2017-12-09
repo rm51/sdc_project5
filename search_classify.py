@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
 from lessons import *
 from scipy.ndimage.measurements import label
+from collections import deque
 # NOTE: the next import is only valid for scikit-learn version <=0.17
 # for scikit-learn >= 0.18 use:
 # from sklearn.model_selection import train_test_split
@@ -251,6 +252,8 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
     window = 64
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
+
+    # setting to 1 finds many more cars but also finds false positives
     cells_per_step = 2  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
@@ -318,8 +321,8 @@ def add_heat(heatmap, bbox_list):
 		heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
 		# display image for writeup
-		# plt.imshow(heatmap)
-		# plt.show()
+		plt.imshow(heatmap)
+		plt.show()
 
 	# Return updated heatmap
 	return heatmap # Iterate through list of bboxes
@@ -333,7 +336,8 @@ def apply_threshold(heatmap, threshold):
 ystart = 300
 ystop = 656
 xstart = 250
-scale = 2
+scale = 1.5
+# scale = 2
 
 def draw_labeled_bboxes(img, labels):
 	# Iterate through all detected cars
@@ -349,8 +353,10 @@ def draw_labeled_bboxes(img, labels):
 		bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
 		# Draw the box on the image
 		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
-		global previous
-		previous.append((bbox[0], bbox[1]))
+		
+		# commenting out previous because causing video to rewind
+		#global previous
+		#previous.append((bbox[0], bbox[1]))
 		#print ("bbox[0]", bbox[0], "bbox[1]", bbox[1])
 
 	# Return the image
@@ -377,12 +383,15 @@ def process_video(clip1):
 
 		# Find final boxes from heatmap using label function
 		labels = label(heatmap)
-		global previous
-		if len(labels) == 0:
-			draw_img = cv2.rectangle(img, previous[0], previous[1], (0,0,225), 6)
-		else:
-			draw_img = draw_labeled_bboxes(np.copy(frame), labels)
+		
+		# commenting out becuase causing video to rewind
+		# global previous
+		# if len(labels) == 0:
+		#	draw_img = cv2.rectangle(img, previous[0], previous[1], (0,0,225), 6)
+		#else:
+		draw_img = draw_labeled_bboxes(np.copy(frame), labels)
 		out.write(draw_img)
+		#out.write(out_img)
 
 def process_image(img):
 	
