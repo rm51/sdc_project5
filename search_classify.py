@@ -15,6 +15,7 @@ from collections import deque
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
 
+history = deque(maxlen=5)
 img = cv2.imread('test_images/test1.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
@@ -243,8 +244,6 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     ch3 = ctrans_tosearch[:,:,2]
 
     # Define blocks and steps as above
-    # Subtracting 300 doesn't eliminate the left side and also doesn't find the cars
-    # maybe need to divide 300 per pixels to get the value?
     nxblocks = ((ch1.shape[1]) // pix_per_cell) - cell_per_block + 1
     nyblocks = (ch1.shape[0] // pix_per_cell) - cell_per_block + 1 
     nfeat_per_block = orient*cell_per_block**2
@@ -304,7 +303,9 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                 bbox_list.append(((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)))
                 
                 # display image for writeup
-                # display_img = cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
+                display_img = cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
+                
+                # cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB)
                 # plt.imshow(display_img)
                 # plt.show()
 
@@ -314,6 +315,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     #return draw_img
 
 def add_heat(heatmap, bbox_list):
+
 	# Iterate through list of boxes
 	for box in bbox_list:
 		# Add += 1 for all pixels inside each box
@@ -321,9 +323,9 @@ def add_heat(heatmap, bbox_list):
 		heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
 		# display image for writeup
-		plt.imshow(heatmap)
-		plt.show()
-
+		# plt.imshow(heatmap, cmap='hot')
+		# plt.show()
+	
 	# Return updated heatmap
 	return heatmap # Iterate through list of bboxes
 
@@ -331,6 +333,10 @@ def apply_threshold(heatmap, threshold):
 	# Zero out pixels below the threshold
 	heatmap[heatmap <= threshold] = 0
 	# Return thresholded map
+
+	# display image for writeup
+	# plt.imshow(heatmap)
+	# plt.show()
 	return heatmap
 
 ystart = 300
@@ -355,9 +361,9 @@ def draw_labeled_bboxes(img, labels):
 		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
 		
 		# commenting out previous because causing video to rewind
-		#global previous
-		#previous.append((bbox[0], bbox[1]))
-		#print ("bbox[0]", bbox[0], "bbox[1]", bbox[1])
+		# global previous
+		# previous.append((bbox[0], bbox[1]))
+		# print ("bbox[0]", bbox[0], "bbox[1]", bbox[1])
 
 	# Return the image
 	return img
@@ -366,15 +372,24 @@ def draw_labeled_bboxes(img, labels):
 def process_video(clip1):
 	while (clip1.isOpened()):
 		ret, frame = clip1.read()
+		
+		# cv2.imshow('frame',frame)
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
 		#out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 		heat = np.zeros_like(frame[:,:,0]).astype(np.float)
 		bbox_list = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 		
 		# Add heat to each box in box list
 		heat = add_heat(heat, bbox_list)
+		global history
+
+		history.append(heat)
+		heat_sum  = sum(history)/5
+		#heat = heat_sum/len(history)
 
 		# Add threshold to help remove false positives
-		heat = apply_threshold(heat, 2)
+		heat = apply_threshold(heat_sum, 2)
 
 		# Visualize the heatmap when displaying
 		heatmap = np.clip(heat, 0, 255)
