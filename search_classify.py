@@ -24,11 +24,12 @@ previous = []
 
 ### TODO Tweak these parameters and see how the results change
 color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-orient = 9
+orient = 11
 #orient = 9 # HOG pixels per cell
-pix_per_cell = 8 # HOG pixels per cell
-cell_per_block = 4 # HOG cells per block
-# cell_per_block = 2 # HOG cells per block
+# pix_per_cell = 8
+pix_per_cell = 16 # HOG pixels per cell
+# cell_per_block = 4 # HOG cells per block
+cell_per_block = 2 # HOG cells per block
 hog_channel = "ALL" # Can be 0, 1, 2 or "ALL"
 spatial_size = (32, 32)
 #spatial_size = (16, 16) # Spatial binning dimensions
@@ -112,6 +113,7 @@ def search_windows(img, windows, clf, scaler, color_space=color_space,
 		test_features = scaler.transform(np.array(features).reshape(1, -1))
 		#6) Predict using your classifier
 		prediction = clf.predict(test_features)
+		
 		#7) If positive (prediction = 1) then save the window
 		if prediction == 1:
 			on_windows.append(window)
@@ -192,7 +194,7 @@ print('Using:', orient,'orientations', pix_per_cell,
 	'pixels per cell and', cell_per_block, 'cells per block')
 print('Feature vector length:', len(X_train[0]))
 # Use a linear SVC
-svc = LinearSVC()
+svc = LinearSVC(tol=.01,C=.8)
 # Check the training time for the SVC
 t=time.time()
 svc.fit(X_train, y_train)
@@ -252,8 +254,8 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     window = 64
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
 
-    # setting to 1 finds many more cars but also finds false positives
-    cells_per_step = 2  # Instead of overlap, define how many cells to step
+    # when set to 1 find the two cars at the end but many more false positives as opposed to 2
+    cells_per_step = 1  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
     
@@ -292,10 +294,13 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
             test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))    
             #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))    
             test_prediction = svc.predict(test_features)
+            # confidence of prediction
+            
             
             # Filtering out boxes where xleft is less than 200 because that is on the wrong side of the road
             # originally was 200
-            if test_prediction == 1 and xleft > 400:
+            if test_prediction == 1 and xleft > 400 and svc.decision_function(test_features) > .5:
+                # print (svc.decision_function(test_features))
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
