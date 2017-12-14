@@ -16,6 +16,7 @@ from collections import deque
 from sklearn.cross_validation import train_test_split
 
 history = deque(maxlen=5)
+frames = deque(maxlen=5)
 img = cv2.imread('test_images/test1.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
@@ -24,6 +25,7 @@ previous = []
 
 ### TODO Tweak these parameters and see how the results change
 color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+# color_space = 'YUV' # not as good
 orient = 11
 #orient = 9 # HOG pixels per cell
 # pix_per_cell = 8
@@ -255,6 +257,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
 
     # when set to 1 find the two cars at the end but many more false positives as opposed to 2
+    # try changing this numbr of 4 to 8 pixels
     cells_per_step = 1  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
@@ -347,7 +350,9 @@ def apply_threshold(heatmap, threshold):
 ystart = 300
 ystop = 656
 xstart = 250
-scale = 1.5
+# .75 detects small images but also more false positives, try scale = 1
+scale = 1.25
+# scale = 1.5
 # scale = 2
 
 def draw_labeled_bboxes(img, labels):
@@ -362,8 +367,12 @@ def draw_labeled_bboxes(img, labels):
 		nonzerox = np.array(nonzero[1])
 		# Define a bounding box based on min/max x and y
 		bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+		
 		# Draw the box on the image
 		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+	
+
+
 		
 		# commenting out previous because causing video to rewind
 		# global previous
@@ -388,9 +397,9 @@ def process_video(clip1):
 		# Add heat to each box in box list
 		heat = add_heat(heat, bbox_list)
 		global history
-
+		
 		history.append(heat)
-		heat_sum  = sum(history)/5
+		heat_sum  = sum(history)/len(history)
 		#heat = heat_sum/len(history)
 
 		# Add threshold to help remove false positives
@@ -400,16 +409,31 @@ def process_video(clip1):
 		heatmap = np.clip(heat, 0, 255)
 		# plt.imshow(heatmap)
 		# plt.imshow()
+		# print (frame.shape) # (720, 1280, 3)
+		
+		global frames
+		# use average frame to smooth boxes
+		number_average_frames = 5
+		frames.append(frame)
+		avg_frame = np.mean(np.array(frames)[-len(frames)], axis=-1)
+		print (avg_frame.shape)
+		avg_frame = np.reshape(avg_frame, (720, 1280, 3))
+		print (avg_frame.shape) # (720, 1280)
+		#avg_frame = (avg_frame * 255.0).astype(np.float)
+		#print (avg_frame.shape)
+		##cv2.imshow('avg_frame',avg_frame)
+		#lt.show()
+		
 
 		# Find final boxes from heatmap using label function
 		labels = label(heatmap)
 		
-		# commenting out becuase causing video to rewind
-		# global previous
-		# if len(labels) == 0:
-		#	draw_img = cv2.rectangle(img, previous[0], previous[1], (0,0,225), 6)
-		#else:
-		draw_img = draw_labeled_bboxes(np.copy(frame), labels)
+		#labels = label(avg_frame)
+
+		draw_img = draw_labeled_bboxes(np.copy(avg_frame), labels)
+		#draw_img = cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB )
+		#cv2.imshow('draw_image',draw_img)
+	
 		out.write(draw_img)
 		#out.write(out_img)
 
@@ -446,48 +470,17 @@ process_video(video)
 
 # Chose and train a classifier, LinearSVM probalby best but oculd try others as well
 
-# Sliding window technique in test image
+# try with the original data set and not moving any of the images around
 
-# multi scale search or tile search
+# add deque for bounding baxes to make them more stable as well
 
-# Use a deque
+# video images are rgb but training images with cv2 are bgr so need to conver
 
-# look into limiting x values
+# scaling of training images scaled from 0 to 1 or 0 to 255
+ 
+# cv2.error: /Users/jenkins/miniconda/1/x64/conda-bld/conda_1486587097465/work/opencv-3.1.0/modules/imgproc/src/color.cpp:8476: error: (-215) src.depth() == dst.depth() in function cvCvtColor
 
-# Try to split up into every 10th image for training
-
-# estimate the path and once we've foudn a vehicle keep going there
-
-# expected result Test Accuracy of SVC =  0.4908 when I broke up the time series data
-
-# find centroid of boxes and then draw the box where it will appear in teh next frame
-
-# can estimate what the size should be based on how clsoe it is
-
-
-# have a vector to draw on previou  bboxes, then just have to detec new ones and then change scale based on something
-
-# if it didnt' detect it then draw on
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# error when trying to average bboxes
 
 
 
