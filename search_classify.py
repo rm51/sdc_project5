@@ -209,24 +209,19 @@ t=time.time()
 '''
 image = mpimg.imread('bbox-example-image.jpg')
 draw_image = np.copy(image)
-
 # Uncomment the following line if you extracted training
 # data from .png images (scaled 0 to 1 by mpimg) and the
 # image you are searching is a .jpg (scaled 0 to 255)
 # image = image.astype(np.float32)/255
-
 windows = slide_window(image, x_start_stop=[None, None], y_start_stop=(450, 750),
 					xy_window=(96, 96), xy_overlap=(0.5, 0.5))
-
 hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
 						spatial_space=spatial_size, hist_bins=hist_bins,
 						orient=orient, pix_per_cell=pix_per_cell,
 						cell_per_block=cell_per_block,
 						hog_channel=hog_channel, spatial_feat=spatial_feat,
 						hist_feat=hist_feat, hog_feat=hog_feat)
-
 window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
-
 plt.imshow(window_img)
 '''
 
@@ -407,29 +402,16 @@ def process_video(clip1):
 
 		# Visualize the heatmap when displaying
 		heatmap = np.clip(heat, 0, 255)
-		# plt.imshow(heatmap)
-		# plt.imshow()
-		# print (frame.shape) # (720, 1280, 3)
-		
 		global frames
-		# use average frame to smooth boxes
+		# use average frame to smooth boxe
 		number_average_frames = 5
-		frames.append(frame)
-		avg_frame = np.mean(np.array(frames)[-len(frames)], axis=-1)
-		print (avg_frame.shape)
-		avg_frame = np.reshape(avg_frame, (720, 1280, 3))
-		print (avg_frame.shape) # (720, 1280)
-		#avg_frame = (avg_frame * 255.0).astype(np.float)
-		#print (avg_frame.shape)
-		##cv2.imshow('avg_frame',avg_frame)
-		#lt.show()
-		
-
+		sum_frames = frame
+		for f in frames:
+			sum_frames += f
+		avg_frame = sum_frames/(len(frames) +1)
 		# Find final boxes from heatmap using label function
 		labels = label(heatmap)
-		
-		#labels = label(avg_frame)
-
+		avg_frame = avg_frame.astype('uint8')
 		draw_img = draw_labeled_bboxes(np.copy(avg_frame), labels)
 		#draw_img = cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB )
 		#cv2.imshow('draw_image',draw_img)
@@ -481,15 +463,3 @@ process_video(video)
 # cv2.error: /Users/jenkins/miniconda/1/x64/conda-bld/conda_1486587097465/work/opencv-3.1.0/modules/imgproc/src/color.cpp:8476: error: (-215) src.depth() == dst.depth() in function cvCvtColor
 
 # error when trying to average bboxes
-
-
-
-
-
-
-
-
-
-
-
-
