@@ -15,8 +15,8 @@ from collections import deque
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
 
-history = deque(maxlen=5)
-frames = deque(maxlen=5)
+history = deque(maxlen=10)
+frames = deque(maxlen=10)
 img = cv2.imread('test_images/test1.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
@@ -123,8 +123,9 @@ def search_windows(img, windows, clf, scaler, color_space=color_space,
 	return on_windows
 
 # Read in cars and notcars
+'''
 cars_path='vehicles/*/*.png'
-car_testing_data_path = 'vehicle_images_separated/*.png'
+#car_testing_data_path = 'vehicle_images_separated/*.png'
 cars_images = glob.glob(cars_path)
 car_testing_data = glob.glob(car_testing_data_path)
 notcars_path='non-vehicles/*/*.png'
@@ -134,10 +135,26 @@ cars = []
 notcars = []
 cars_testing_data = []
 
+
 for image in cars_images:
 	cars.append(image)
 for image in car_testing_data:
 	cars_testing_data.append(image)
+for image in notcars_images:
+	notcars.append(image)
+'''
+
+# Read in cars and notcars
+cars_path='vehicles/*/*.png'
+cars_images = glob.glob(cars_path)
+notcars_path='non-vehicles/*/*.png'
+cars_images = glob.glob(cars_path)
+notcars_images = glob.glob(notcars_path)
+cars = []
+notcars = []
+
+for image in cars_images:
+	cars.append(image)
 for image in notcars_images:
 	notcars.append(image)
 
@@ -155,11 +172,12 @@ car_features = extract_features(cars, color_space=color_space,
 							orient=orient, pix_per_cell=pix_per_cell,
 							cell_per_block=cell_per_block,
 							hog_channel=hog_channel, hog_feat=hog_feat)
-car_testing_features =  extract_features(cars_testing_data, color_space=color_space,
+'''car_testing_features =  extract_features(cars_testing_data, color_space=color_space,
 							spatial_size=spatial_size, hist_bins=hist_bins,
 							orient=orient, pix_per_cell=pix_per_cell,
 							cell_per_block=cell_per_block,
 							hog_channel=hog_channel, hog_feat=hog_feat)
+'''
 notcar_features = extract_features(notcars, color_space=color_space,
 						spatial_size=spatial_size, hist_bins=hist_bins,
 						orient=orient, pix_per_cell=pix_per_cell,
@@ -168,30 +186,29 @@ notcar_features = extract_features(notcars, color_space=color_space,
 						hist_feat=hist_feat, hog_feat=hog_feat)
 
 X = np.vstack((car_features, notcar_features)).astype(np.float64)
-X_test = np.vstack((car_testing_features, notcar_features)).astype(np.float64)
+
 # Fit a per-column scaler
 X_scaler = StandardScaler().fit(X)
-X_scaler_test = StandardScaler().fit(X_test)
+
 # Apply the Scaler to X
 scaled_X = X_scaler.transform(X)
-scaled_X_test = X_scaler_test.transform(X_test)
+
 
 # Define the labels vector
 y  = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
-y_test = np.hstack((np.ones(len(car_testing_features)), np.zeros(len(notcar_features))))
 
 # Split up data into randomized training and test sets
-'''
+
 rand_state = np.random.randint(0, 100)
 X_train, X_test, y_train, y_test = train_test_split(
 	scaled_X, y, test_size=0.3, random_state=rand_state)
-'''
-rand_state = np.random.randint(0, 100)
 
+
+'''
 X_train, y_train = scaled_X, y
 
 X_test, y_test = scaled_X_test, y_test
-
+'''
 print('Using:', orient,'orientations', pix_per_cell,
 	'pixels per cell and', cell_per_block, 'cells per block')
 print('Feature vector length:', len(X_train[0]))
@@ -253,6 +270,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
     # when set to 1 find the two cars at the end but many more false positives as opposed to 2
     # try changing this numbr of 4 to 8 pixels
+    # 4 misses everything
     cells_per_step = 1  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
@@ -404,7 +422,7 @@ def process_video(clip1):
 		heatmap = np.clip(heat, 0, 255)
 		global frames
 		# use average frame to smooth boxe
-		number_average_frames = 5
+		
 		sum_frames = frame
 		for f in frames:
 			sum_frames += f
@@ -452,7 +470,7 @@ process_video(video)
 
 # Chose and train a classifier, LinearSVM probalby best but oculd try others as well
 
-# try with the original data set and not moving any of the images around
+#  *****try with the original data set and not moving any of the images around
 
 # add deque for bounding baxes to make them more stable as well
 
@@ -460,6 +478,8 @@ process_video(video)
 
 # scaling of training images scaled from 0 to 1 or 0 to 255
  
-# cv2.error: /Users/jenkins/miniconda/1/x64/conda-bld/conda_1486587097465/work/opencv-3.1.0/modules/imgproc/src/color.cpp:8476: error: (-215) src.depth() == dst.depth() in function cvCvtColor
 
 # error when trying to average bboxes
+
+
+# try to do tracking , eveyr tenth frame search
