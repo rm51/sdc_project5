@@ -107,4 +107,7 @@ I wanted to save the previous frame and once I got a reliable detection draw tha
 
 I also limited the x values so that if startx were less than 300 it wouldn't add them to the bboxes list. But that would only work for similar vidoes. If there were no left side of the road in the video then it would incorrectly filter out valid cars.
 
+I wasn't able to classify the car in the distance even though I added that car to the vehicles set. 
 
+I think I could have improved things by maybe using contours or some sort of tracking. Also I would have liked to have sped up things as the program runs very slowly. 
+And ideally I would move things into classes to make it look more polished.
