@@ -369,11 +369,11 @@ def apply_threshold(heatmap, threshold):
 
 #ystart = 300
 # ystart = 200 detects car in teh trees 
-ystart = 300
+ystart = 400
 ystop = 656
 xstart = 250
 # .75 detects small images but also more false positives, try scale = 1, changed from scale = 1.25
-scale = 1.1
+scale = 1.5
 # scale = .9 detects the two cars at the end but also more falst postiives
 # scale = 1.5
 # scale = 2
