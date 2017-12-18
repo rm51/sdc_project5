@@ -17,11 +17,12 @@ from sklearn.cross_validation import train_test_split
 
 history = deque(maxlen=10)
 frames = deque(maxlen=10)
-img = cv2.imread('test_images/test1.jpg')
+img = cv2.imread('original_images/original_image3181.jpg')
 video = cv2.VideoCapture('project_video.mp4')
 fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
 out = cv2.VideoWriter('output.mp4', fourcc, 20, (1280, 720))
 previous = []
+count = 10
 
 ### TODO Tweak these parameters and see how the results change
 color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
@@ -213,6 +214,7 @@ print('Using:', orient,'orientations', pix_per_cell,
 	'pixels per cell and', cell_per_block, 'cells per block')
 print('Feature vector length:', len(X_train[0]))
 # Use a linear SVC
+# previous tol = 0.01
 svc = LinearSVC(tol=.01,C=.8)
 # Check the training time for the SVC
 t=time.time()
@@ -346,6 +348,11 @@ def add_heat(heatmap, bbox_list):
 		# display image for writeup
 		# plt.imshow(heatmap, cmap='hot')
 		# plt.show()
+	for box in bbox_list:
+		if np.max(heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]]) > 1:
+			heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 2
+			
+
 	
 	# Return updated heatmap
 	return heatmap # Iterate through list of bboxes
@@ -360,11 +367,14 @@ def apply_threshold(heatmap, threshold):
 	# plt.show()
 	return heatmap
 
+#ystart = 300
+# ystart = 200 detects car in teh trees 
 ystart = 300
 ystop = 656
 xstart = 250
-# .75 detects small images but also more false positives, try scale = 1
-scale = 1.25
+# .75 detects small images but also more false positives, try scale = 1, changed from scale = 1.25
+scale = 1.1
+# scale = .9 detects the two cars at the end but also more falst postiives
 # scale = 1.5
 # scale = 2
 
@@ -384,14 +394,6 @@ def draw_labeled_bboxes(img, labels):
 		# Draw the box on the image
 		cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
 	
-
-
-		
-		# commenting out previous because causing video to rewind
-		# global previous
-		# previous.append((bbox[0], bbox[1]))
-		# print ("bbox[0]", bbox[0], "bbox[1]", bbox[1])
-
 	# Return the image
 	return img
 
@@ -405,6 +407,7 @@ def process_video(clip1):
 		# cv2.destroyAllWindows()
 		#out_img = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 		heat = np.zeros_like(frame[:,:,0]).astype(np.float)
+		
 		bbox_list = find_cars(frame, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
 		
 		# Add heat to each box in box list
@@ -416,7 +419,7 @@ def process_video(clip1):
 		#heat = heat_sum/len(history)
 
 		# Add threshold to help remove false positives
-		heat = apply_threshold(heat_sum, 2)
+		heat = apply_threshold(heat_sum, 1)
 
 		# Visualize the heatmap when displaying
 		heatmap = np.clip(heat, 0, 255)
@@ -482,4 +485,9 @@ process_video(video)
 # error when trying to average bboxes
 
 
-# try to do tracking , eveyr tenth frame search
+# try to do tracking , every tenth frame search
+
+# remove the false negatives 
+
+
+
